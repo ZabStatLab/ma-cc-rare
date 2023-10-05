@@ -1,5 +1,5 @@
 # ma-cc-rare
-Code for The Impact of Corrections Methods on Rare-Event Meta-Analysis
+Code for The Impact of Corrections Methods on Rare-Event Meta-Analysis by Brinley N. Zabriskie, Nolan Cole, Jacob Baldauf, and Craig Decker.
 
 This folder contains code to reproduce the simulation study (Section 4 in the paper) and the case study example (Section 5 in the paper). 
 
