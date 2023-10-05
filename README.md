@@ -41,8 +41,8 @@ Results can then be summarized in terms of Type I error rate, relative power, co
 ## For the case study example:
 Make sure the following packages are installed: tidyverse, readxl, and meta.
 1. Anti-TNF.xlsx
-   - Anti-TNF data set
+    - Anti-TNF data set
 2. Case_Study_Anti-TNF.R 
-   - Applies various continuity corrections, heterogeneity estimators, and pooling methods to the Anti-TNF data set
-   - Reads in Anti-TNF.xlsx
-   - Calls 0_ApplyAllCCs.R and 0_MAResults.R (defined above)
+    - Applies various continuity corrections, heterogeneity estimators, and pooling methods to the Anti-TNF data set
+    - Reads in Anti-TNF.xlsx
+    - Calls 0_ApplyAllCCs.R and 0_MAResults.R (defined above)
