@@ -129,3 +129,43 @@ if (pooling_method == "MH") {
 }
 
 ma_results
+
+
+##
+## Results reported in publication
+##
+
+m.MH <-
+  metabin(TRT_event, TRT_n, CTRL_event, CTRL_n, sm = "OR",
+    data = single_ma_data_set,
+    incr = "TACC", random = FALSE)
+##
+m.MH.noCC <- update(m.MH, incr = 0)
+##
+m.DL <- update(m.MH, method.tau = "DL", random = TRUE, common = FALSE)
+##
+m.SJ <- update(m.DL, method.tau = "SJ")
+##
+m.PM <- update(m.DL, method.tau = "PM")
+##
+m.IPM <- update(m.DL, tau.preset = sqrt(IPM(single_ma_data_set)))
+
+
+settings.meta(digits = 2)
+
+##
+## Section 5
+##
+
+m.MH
+m.MH.noCC
+
+
+##
+## Table 7
+##
+
+m.IPM
+m.PM
+m.DL
+m.SJ

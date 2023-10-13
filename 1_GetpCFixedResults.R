@@ -8,7 +8,8 @@ source("0_MAResults.R")
 
 AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
                                 pooling_method, tau2_estimator, excludeDBZ,
-                                num_reps, scenario_num) {
+                                num_reps, scenario_num,
+                                datadir, resdir) {
   
   # Create list to store results -----------------------------------------------
   #   Each item in the list contains the results for the ith data set.
@@ -34,9 +35,9 @@ AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
   ma_results <- rep(list(single_ma_data_set_results), num_reps)
   
   # Read in data ---------------------------------------------------------------
-  setwd("./RDSDataSets")
-  load(paste0("pCFixed,Theta=", theta, ",Tau2=", tau2, ",P_ic=", p_ic_init, 
-              ",MinN=", min_n, ",MaxN=", max_n, ".RData"))
+  load(paste0(
+    datadir, "/pCFixed,Theta=", theta, ",Tau2=", tau2, ",P_ic=", p_ic_init, 
+    ",MinN=", min_n, ",MaxN=", max_n, ".RData"))
   
   # Run data set through CC and MA methods -------------------------------------
   for (j in 1:num_reps) {
@@ -126,8 +127,7 @@ AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
   }
   
   # save results ---------------------------------------------------------------
-  setwd("./../Results")
-  saveRDS(ma_results, paste0("pCFixedResults_", scenario_num, ".rds"))
+  saveRDS(ma_results, paste0(resdir, "/pCFixedResults_", scenario_num, ".rds"))
 }
 
 # Generate MA combinations with expand.grid ------------------------------------
@@ -166,6 +166,11 @@ num_reps <- 2000
 seed <- 1234
 
 # Parallelize Code -------------------------------------------------------------
+rdsdir <- "./RDSDataSets"
+resdir <- "./Results"
+if (!dir.exists(resdir))
+  dir.create(resdir)
+##
 future_mapply("AllpCFixedMAResults",
               scenario_num = row.names(param_combs),
               theta = param_combs$theta,
@@ -177,4 +182,5 @@ future_mapply("AllpCFixedMAResults",
               tau2_estimator = param_combs$tau2_estimator,
               excludeDBZ = param_combs$excludeDBZ,
               MoreArgs = list(num_reps = num_reps),
-              future.seed = seed)
+              future.seed = seed,
+              datadir = rdsdir, resdir = resdir)
