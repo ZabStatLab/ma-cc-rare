@@ -1,12 +1,13 @@
 # Apply the GLMM method to Previously Generated Data Sets
 
 library(future.apply)
-plan(multisession, workers = 110)
+plan(multisession, workers = 2)
 library(metafor)
 library(BiasedUrn)
 
 AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
-                                excludeDBZ, num_reps, scenario_num) {
+                                excludeDBZ, num_reps, scenario_num,
+                                datadir, resdir) {
   
   # Create list to store results -----------------------------------------------
   #   Each item in the list contains the results for the ith data set.
@@ -24,8 +25,8 @@ AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
   ma_results <- rep(list(single_ma_data_set_results), num_reps)
   
   # Read in data ---------------------------------------------------------------
-  setwd("./RDSDataSets")
-  load(paste0("pCFixed,Theta=", theta, ",Tau2=", tau2, ",P_ic=", p_ic_init, 
+  load(paste0(
+    datadir, "/pCFixed,Theta=", theta, ",Tau2=", tau2, ",P_ic=", p_ic_init, 
               ",MinN=", min_n, ",MaxN=", max_n, ".RData"))
   
   
@@ -131,8 +132,7 @@ AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
   }
   
   # save results ---------------------------------------------------------------
-  setwd("./../Results_GLMM")
-  saveRDS(ma_results, paste0("pCFixedResults_", scenario_num, "_GLMM.rds"))
+  saveRDS(ma_results, paste0(resdir, "/pCFixedResults_", scenario_num, "_GLMM.rds"))
 }
 
 # Generate MA combinations with expand.grid ------------------------------------
@@ -161,10 +161,15 @@ param_combs_large$max_n <- 500
 # combine small and large into one data frame
 param_combs <- rbind(param_combs_large, param_combs_small)
 
-num_reps <- 2000
+num_reps <- 2
 seed <- 1234
 
 # Parallelize Code -------------------------------------------------------------
+rdsdir <- "./RDSDataSets"
+resdir <- "./Results_GLMM"
+if (!dir.exists(resdir))
+  dir.create(resdir)
+
 future_mapply("AllpCFixedMAResults",
               scenario_num = row.names(param_combs),
               theta = param_combs$theta,
