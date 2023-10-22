@@ -179,4 +179,6 @@ future_mapply("AllpCFixedMAResults",
               p_ic_init = param_combs$p_ic_init,
               excludeDBZ = param_combs$excludeDBZ,
               MoreArgs = list(num_reps = num_reps),
-              future.seed = seed)
+              future.seed = seed,
+              datadir = rdsdir,
+              resdir = resdir)
