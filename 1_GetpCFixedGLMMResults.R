@@ -1,21 +1,13 @@
 # Apply the GLMM method to Previously Generated Data Sets
 
 library(future.apply)
-<<<<<<< HEAD
 plan(multisession, workers = 2)
-=======
-plan(multisession, workers = 110)
->>>>>>> main
 library(metafor)
 library(BiasedUrn)
 
 AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
-<<<<<<< HEAD
                                 excludeDBZ, num_reps, scenario_num,
                                 datadir, resdir) {
-=======
-                                excludeDBZ, num_reps, scenario_num) {
->>>>>>> main
   
   # Create list to store results -----------------------------------------------
   #   Each item in the list contains the results for the ith data set.
@@ -33,16 +25,9 @@ AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
   ma_results <- rep(list(single_ma_data_set_results), num_reps)
   
   # Read in data ---------------------------------------------------------------
-<<<<<<< HEAD
   load(paste0(
     datadir, "/pCFixed,Theta=", theta, ",Tau2=", tau2, ",P_ic=", p_ic_init, 
-    ",MinN=", min_n, ",MaxN=", max_n, ".RData"))
-=======
-  setwd("./RDSDataSets")
-  load(paste0("pCFixed,Theta=", theta, ",Tau2=", tau2, ",P_ic=", p_ic_init, 
-              ",MinN=", min_n, ",MaxN=", max_n, ".RData"))
->>>>>>> main
-  
+    ",MinN=", min_n, ",MaxN=", max_n, ".RData"))  
   
   # Run data set through CC and MA methods -------------------------------------
   for (j in 1:num_reps) {
@@ -146,12 +131,7 @@ AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
   }
   
   # save results ---------------------------------------------------------------
-<<<<<<< HEAD
   saveRDS(ma_results, paste0(resdir, "/pCFixedResults_", scenario_num, "_GLMM.rds"))
-=======
-  setwd("./../Results_GLMM")
-  saveRDS(ma_results, paste0("pCFixedResults_", scenario_num, "_GLMM.rds"))
->>>>>>> main
 }
 
 # Generate MA combinations with expand.grid ------------------------------------
@@ -180,7 +160,6 @@ param_combs_large$max_n <- 500
 # combine small and large into one data frame
 param_combs <- rbind(param_combs_large, param_combs_small)
 
-<<<<<<< HEAD
 num_reps <- 2
 seed <- 1234
 
@@ -190,12 +169,6 @@ resdir <- "./Results_GLMM"
 if (!dir.exists(resdir))
   dir.create(resdir)
 
-=======
-num_reps <- 2000
-seed <- 1234
-
-# Parallelize Code -------------------------------------------------------------
->>>>>>> main
 future_mapply("AllpCFixedMAResults",
               scenario_num = row.names(param_combs),
               theta = param_combs$theta,
@@ -205,10 +178,6 @@ future_mapply("AllpCFixedMAResults",
               p_ic_init = param_combs$p_ic_init,
               excludeDBZ = param_combs$excludeDBZ,
               MoreArgs = list(num_reps = num_reps),
-<<<<<<< HEAD
               future.seed = seed,
               datadir = rdsdir,
               resdir = resdir)
-=======
-              future.seed = seed)
->>>>>>> main
