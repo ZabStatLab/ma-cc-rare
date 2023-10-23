@@ -1,8 +1,13 @@
 # Apply Various Continuity Corrections, Heterogeneity Estimators, and Pooling
 # Methods to Previously Generated Data Sets
 
+require(devtools)
+install_version("meta", 
+                version = "4.16",
+                repos = "http://cran.us.r-project.org")
+
 library(future.apply)
-plan(multisession, workers = 64)
+plan(multisession, workers = 2)
 source("0_ApplyAllCCs.R")
 source("0_MAResults.R")
 
@@ -162,7 +167,7 @@ param_combs_large$max_n <- 500
 # combine small and large into one data frame
 param_combs <- rbind(param_combs_large, param_combs_small)
 
-num_reps <- 2000
+num_reps <- 2
 seed <- 1234
 
 # Parallelize Code -------------------------------------------------------------
@@ -170,7 +175,7 @@ rdsdir <- "./RDSDataSets"
 resdir <- "./Results"
 if (!dir.exists(resdir))
   dir.create(resdir)
-##
+
 future_mapply("AllpCFixedMAResults",
               scenario_num = row.names(param_combs),
               theta = param_combs$theta,
@@ -183,4 +188,5 @@ future_mapply("AllpCFixedMAResults",
               excludeDBZ = param_combs$excludeDBZ,
               MoreArgs = list(num_reps = num_reps),
               future.seed = seed,
-              datadir = rdsdir, resdir = resdir)
+              datadir = rdsdir,
+              resdir = resdir)

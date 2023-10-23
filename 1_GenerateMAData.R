@@ -1,20 +1,13 @@
 # Generate Binary Event Meta-Analysis Data
 
 library(future.apply)
-plan(multisession, workers = 80)
+plan(multisession, workers = 2)
 source("0_DGMs.R")  # Data Generating Methods
 
 # Function to Replicate Data ---------------------------------------------------
 SaveDataSets <- function(theta, k, tau2, p_ic_init, min_n, max_n, num_reps,
                          dir) {
   
-  pRandom_data_sets <- replicate(num_reps, 
-                                 pRandomGenerateMAData(theta = theta,
-                                                       k = k,
-                                                       tau2 = tau2,
-                                                       p_ic_init = p_ic_init,
-                                                       min_n = min_n,
-                                                       max_n = max_n))
   pCFixed_data_sets <- replicate(num_reps, 
                                  pCfixedGenerateMAData(theta = theta,
                                                        k = k,
@@ -31,12 +24,6 @@ SaveDataSets <- function(theta, k, tau2, p_ic_init, min_n, max_n, num_reps,
                                                          max_n = max_n))
   
   # Save as RData files
-  save(pRandom_data_sets,
-       file = paste0(dir, "/pRandom,Theta=", theta,
-                     ",Tau2=", tau2,
-                     ",P_ic=", p_ic_init,
-                     ",MinN=", min_n,
-                     ",MaxN=", max_n, ".RData"))
   save(pCFixed_data_sets,
        file = paste0(dir, "/pCFixed,Theta=", theta,
                      ",Tau2=", tau2,
@@ -74,7 +61,7 @@ dgm_param_combs_large$max_n <- 500
 # combine small and large into one data frame
 dgm_param_combs <- rbind(dgm_param_combs_large, dgm_param_combs_small)
 
-num_reps <- 2000
+num_reps <- 2
 k <- 10
 seed <- 1234
 
@@ -82,7 +69,7 @@ seed <- 1234
 rdsdir <- "./RDSDataSets"
 if (!dir.exists(rdsdir))
   dir.create(rdsdir)
-##
+
 future_mapply("SaveDataSets",
               theta = dgm_param_combs$theta,
               tau2 = dgm_param_combs$tau2,
