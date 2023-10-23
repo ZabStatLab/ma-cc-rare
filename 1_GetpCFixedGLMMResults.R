@@ -27,8 +27,7 @@ AllpCFixedMAResults <- function(theta, tau2, p_ic_init, min_n, max_n,
   # Read in data ---------------------------------------------------------------
   load(paste0(
     datadir, "/pCFixed,Theta=", theta, ",Tau2=", tau2, ",P_ic=", p_ic_init, 
-              ",MinN=", min_n, ",MaxN=", max_n, ".RData"))
-  
+    ",MinN=", min_n, ",MaxN=", max_n, ".RData"))  
   
   # Run data set through CC and MA methods -------------------------------------
   for (j in 1:num_reps) {

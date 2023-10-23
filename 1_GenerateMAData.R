@@ -1,19 +1,13 @@
 # Generate Binary Event Meta-Analysis Data
 
 library(future.apply)
-plan(multisession, workers = 80)
+plan(multisession, workers = 2)
 source("0_DGMs.R")  # Data Generating Methods
 
 # Function to Replicate Data ---------------------------------------------------
-SaveDataSets <- function(theta, k, tau2, p_ic_init, min_n, max_n, num_reps) {
+SaveDataSets <- function(theta, k, tau2, p_ic_init, min_n, max_n, num_reps,
+                         dir) {
   
-  pRandom_data_sets <- replicate(num_reps, 
-                                 pRandomGenerateMAData(theta = theta,
-                                                       k = k,
-                                                       tau2 = tau2,
-                                                       p_ic_init = p_ic_init,
-                                                       min_n = min_n,
-                                                       max_n = max_n))
   pCFixed_data_sets <- replicate(num_reps, 
                                  pCfixedGenerateMAData(theta = theta,
                                                        k = k,
@@ -30,22 +24,18 @@ SaveDataSets <- function(theta, k, tau2, p_ic_init, min_n, max_n, num_reps) {
                                                          max_n = max_n))
   
   # Save as RData files
-  setwd("./RDSDataSets")
-  save(pRandom_data_sets, file = paste0("pRandom,Theta=", theta,
-                                        ",Tau2=", tau2,
-                                        ",P_ic=", p_ic_init,
-                                        ",MinN=", min_n,
-                                        ",MaxN=", max_n, ".RData"))
-  save(pCFixed_data_sets, file = paste0("pCFixed,Theta=", theta,
-                                        ",Tau2=", tau2,
-                                        ",P_ic=", p_ic_init,
-                                        ",MinN=", min_n,
-                                        ",MaxN=", max_n, ".RData"))
-  save(pRandomB_data_sets, file = paste0("pRandomB,Theta=", theta,
-                                         ",Tau2=", tau2,
-                                         ",P_ic=", p_ic_init,
-                                         ",MinN=", min_n,
-                                         ",MaxN=", max_n, ".RData"))
+  save(pCFixed_data_sets,
+       file = paste0(dir, "/pCFixed,Theta=", theta,
+                     ",Tau2=", tau2,
+                     ",P_ic=", p_ic_init,
+                     ",MinN=", min_n,
+                     ",MaxN=", max_n, ".RData"))
+  save(pRandomB_data_sets,
+       file = paste0(dir, "/pRandomB,Theta=", theta,
+                     ",Tau2=", tau2,
+                     ",P_ic=", p_ic_init,
+                     ",MinN=", min_n,
+                     ",MaxN=", max_n, ".RData"))
 }
 
 # Generate DGM combinations with expand.grid and set parameter values ----------
@@ -71,11 +61,15 @@ dgm_param_combs_large$max_n <- 500
 # combine small and large into one data frame
 dgm_param_combs <- rbind(dgm_param_combs_large, dgm_param_combs_small)
 
-num_reps <- 2000
+num_reps <- 2
 k <- 10
 seed <- 1234
 
 # Parallelize Code -------------------------------------------------------------
+rdsdir <- "./RDSDataSets"
+if (!dir.exists(rdsdir))
+  dir.create(rdsdir)
+
 future_mapply("SaveDataSets",
               theta = dgm_param_combs$theta,
               tau2 = dgm_param_combs$tau2,
@@ -84,4 +78,5 @@ future_mapply("SaveDataSets",
               max_n = dgm_param_combs$max_n,
               MoreArgs = list(k = k,
                               num_reps = num_reps),
-              future.seed = seed)
+              future.seed = seed,
+              dir = rdsdir)

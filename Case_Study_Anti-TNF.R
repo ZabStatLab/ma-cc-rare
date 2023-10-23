@@ -4,128 +4,98 @@
 library(tidyverse)
 library(readxl)
 library(meta)
+library(metafor)
 
 source("0_ApplyAllCCs.R")
-source("0_MAResults.R")
-set.seed(1234)
+source("0_IPM.R")
+
+settings.meta(digits = 2)
 
 # read in data -----------------------------------------------------------------
-single_ma_data_set <- read_excel("Anti-TNF.xlsx") %>% 
+anti_tnf <- read_excel("Anti-TNF.xlsx") %>% 
   rename(TRT_event = 'TRT e',
          TRT_n = 'TRT t',
          CTRL_event = 'CTRL e',
          CTRL_n = 'CTRL t')
-single_ma_data_set <- as.data.frame(single_ma_data_set)
+anti_tnf <- as.data.frame(anti_tnf)
 
-# Choose parameter values ------------------------------------------------------
-pooling_method <- "SSW"  # "MH", "Inverse", "SSW", "SA"
-tau2_estimator <- "SJ"  # "DL", "SJ", "PM", "IPM"
-excludeDBZ <- TRUE  # TRUE, FALSE
+################################################################################
+#                    Results reported in publication
+################################################################################
+# apply all correction methods to the data
+cc_results <- ApplyAllCCs(single_ma_data_set = anti_tnf, 
+                          pooling_method = "SA", 
+                          tau2_estimator = "DL",
+                          excludeDBZ = TRUE)
 
-# Create list to store results -------------------------------------------------
-#   Each item in the list contains the results for the ith data set.
-#   Each item has 12 MA output statistics (columns) for the 14 data set 
-#   versions (rows)
-ma_results <- matrix(ncol = 12, nrow = 14)
-row.names(ma_results) <- c("original_data_set",
-                           "cac_cc_1", "cac_cc_0.01", 
-                           "czc_cc_1", "czc_cc_0.01", 
-                           "cas_cc_1", "cas_cc_0.01",
-                           "ta_cc_1", "ta_cc_0.01", 
-                           "e_cc_1_fixed", "e_cc_1_random",
-                           "e_cc_0.01_fixed", 
-                           "e_cc_0.01_random",
-                           "exclude_zeros_cc")
-colnames(ma_results) <- c("TE.fixed", "upper.fixed",
-                          "lower.fixed", "pval.fixed", 
-                          "TE.random", "upper.random", 
-                          "lower.random", "pval.random",
-                          "tau2", "num.single.zeros",
-                          "num.double.zeros", 
-                          "e.cc.approx.used")
+# Section 5 --------------------------------------------------------------------
 
-# Count the number of single- and double-zero studies in the original data -----
-TRT_no_event <- single_ma_data_set$TRT_n - single_ma_data_set$TRT_event
-CTRL_no_event <- single_ma_data_set$CTRL_n - single_ma_data_set$CTRL_event
+# common-effect framework, MH pooling method, TA-CC:
+m_MH <- metabin(TRT_event, 
+                TRT_n,
+                CTRL_event,
+                CTRL_n,
+                sm = "OR",
+                method = "MH",
+                data = anti_tnf,
+                incr = "TACC",
+                random = FALSE)
+m_MH  
 
-# Double-zeros ---------------------------
-# double-zero events
-double_zeros_loc <- (single_ma_data_set$TRT_event + 
-                       single_ma_data_set$CTRL_event == 0) |
-  # double-zero non-events
-  (TRT_no_event + CTRL_no_event == 0) |
-  # double-zero with no TRT event and no CTRL non-event
-  (single_ma_data_set$TRT_event == 0 & CTRL_no_event == 0) |
-  # double-zero with no CTRL event and no TRT non-event
-  (single_ma_data_set$CTRL_event == 0 & TRT_no_event == 0)
-ma_results[, "num.double.zeros"] <- sum(double_zeros_loc)
+# common-effect framework, MH pooling method, MH-No-CC:
+m_MH_noCC <- update(m_MH, incr = 0)
+m_MH_noCC
 
-# Single-zeros ---------------------------
-# zero events
-single_zeros_loc <- ((single_ma_data_set$TRT_event == 0 | 
-                        single_ma_data_set$CTRL_event == 0) |
-                       # zero non-events
-                       (TRT_no_event == 0 | 
-                          CTRL_no_event == 0)) &
-  # not a double-zero
-  !double_zeros_loc
-ma_results[, "num.single.zeros"] <- sum(single_zeros_loc)
+# common-effect framework, SA pooling method, E-CC:
+m_SA_ECC <- rma.uni(ai = TRT_event,
+                    n1i = TRT_n,
+                    ci = CTRL_event,
+                    n2i = CTRL_n,
+                    measure = "OR",
+                    data = cc_results$e_cc_1_fixed,
+                    add = 0,
+                    method = "FE",
+                    weighted = FALSE)
+c(exp(m_SA_ECC$beta), exp(m_SA_ECC$ci.lb), exp(m_SA_ECC$ci.ub), m_SA_ECC$pval)
 
+# common-effect framework, SSW pooling method, CAC-CC with k=0.005:
+m_SSW_CACCC <- update(m_MH, 
+                      method = "SSW",
+                      incr = 0.005, 
+                      allincr = FALSE, 
+                      addincr = FALSE)
+m_SSW_CACCC
 
-# Run data set through CC methods ----------------------------------------------
+# random-effects framework, SSW pooling method, TA-CC, SJ heterogeneity est.: 
+m_SSW_TACC <- metabin(TRT_event, 
+                      TRT_n,
+                      CTRL_event,
+                      CTRL_n,
+                      sm = "OR",
+                      method = "SSW",
+                      method.tau = "SJ",
+                      data = cc_results$ta_cc_1,
+                      incr = 0,
+                      common = FALSE)
+m_SSW_TACC
 
-# If TRUE, exclude double-zero studies
-if (excludeDBZ) { 
-  single_ma_data_set <- single_ma_data_set[!double_zeros_loc, ]
-}
+# Table 7 ----------------------------------------------------------------------
+m_DL <- metabin(TRT_event, 
+                TRT_n,
+                CTRL_event,
+                CTRL_n,
+                sm = "OR",
+                method = "MH",
+                method.tau = "DL",
+                data = anti_tnf,
+                incr = "TACC",
+                common = FALSE)
 
-# Apply CCs ----------------------------------------------------------------
-# cc_results will be a list of 14 versions of single_ma_data_set followed 
-# by 4 items noting the number of times the approximate solution was used 
-# for the Empirical CC method
-cc_results <- ApplyAllCCs(single_ma_data_set = single_ma_data_set, 
-                          pooling_method = pooling_method, 
-                          tau2_estimator = tau2_estimator,
-                          excludeDBZ = excludeDBZ)
+m_SJ <- update(m_DL, method.tau = "SJ")
+m_PM <- update(m_DL, method.tau = "PM")
+m_IPM <- update(m_DL, tau.preset = sqrt(IPM(anti_tnf)))
 
-# Note the number of studies where the approximate solution of E_CC was used
-ma_results["e_cc_1_fixed", "e.cc.approx.used"] <- 
-  cc_results$e_cc_1_fixed_approx
-ma_results["e_cc_1_random", "e.cc.approx.used"] <- 
-  cc_results$e_cc_1_random_approx
-ma_results["e_cc_0.01_fixed", "e.cc.approx.used"] <- 
-  cc_results$e_cc_0.01_fixed_approx
-ma_results["e_cc_0.01_random", "e.cc.approx.used"] <- 
-  cc_results$e_cc_0.01_random_approx
-
-# Run data set through MA methods ----------------------------------------------
-# For MH, original data set can be analyzed without a CC applied
-if (pooling_method == "MH") {
-  
-  for (i in 1:nrow(ma_results)) {
-    single_ma_data_set_cc <- cc_results[[i]] 
-    ma_results[i, 1:9] <- MAResults(single_ma_data_set = 
-                                      single_ma_data_set_cc, 
-                                    single_ma_data_set_uncorrected = 
-                                      single_ma_data_set, 
-                                    pooling_method = pooling_method, 
-                                    tau2_estimator = tau2_estimator)
-  }
-  
-} else {  # For other pooling methods, skip analyzing original data
-  
-  for (i in 1:(nrow(ma_results) - 1)) {  # -1 to skip original data
-    # +1 to skip original data
-    single_ma_data_set_cc <- cc_results[[i + 1]]  
-    ma_results[i + 1, 1:9] <- MAResults(single_ma_data_set = 
-                                          single_ma_data_set_cc, 
-                                        single_ma_data_set_uncorrected = 
-                                          single_ma_data_set, 
-                                        pooling_method = 
-                                          pooling_method, 
-                                        tau2_estimator = 
-                                          tau2_estimator)
-  }
-}
-
-ma_results
+m_IPM
+m_PM
+m_DL
+m_SJ
